@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bitácora — Tu registro de bienestar diario</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night: #0f0e17;
+    --deep: #1a1730;
+    --surface: #211e36;
+    --card: #2a2645;
+    --border: rgba(255,255,255,0.07);
+    --violet: #7c6af5;
+    --violet-soft: #9d8ff7;
+    --indigo: #4f46e5;
+    --mist: #c4bfff;
+    --text: #e8e6f7;
+    --text-dim: #9b98b8;
+    --text-faint: #5c5878;
+    --accent-gold: #f0c674;
+    --accent-rose: #f5a0a0;
+    --accent-sage: #7ecba1;
+    --accent-sky: #7dd3fc;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--night);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── NOISE TEXTURE OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  /* ─── AMBIENT GLOWS ─── */
+  .glow-top {
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 500px;
+    background: radial-gradient(ellipse, rgba(124,106,245,0.18) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-bottom {
+    position: fixed;
+    bottom: -300px;
+    right: -100px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(ellipse, rgba(79,70,229,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── LAYOUT ─── */
+  .app {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    background: var(--deep);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 32px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .logo {
+    padding: 0 28px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, var(--violet), var(--indigo));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 4px 16px rgba(124,106,245,0.4);
+  }
+  .logo-name {
+    font-family: 'Lora', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .logo-tag {
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .nav {
+    flex: 1;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .nav-label {
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 0 12px;
+    margin: 12px 0 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 400;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .nav-item.active {
+    background: rgba(124,106,245,0.15);
+    color: var(--violet-soft);
+    border-color: rgba(124,106,245,0.2);
+  }
+  .nav-item .icon { font-size: 15px; width: 20px; text-align: center; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--violet);
+    color: white;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .sidebar-footer {
+    padding: 20px 16px 0;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+  }
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .user-card:hover { background: rgba(255,255,255,0.04); }
+  .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c6af5, #f5a0a0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .user-info { flex: 1; }
+  .user-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .user-sub { font-size: 11px; color: var(--text-faint); }
+
+  /* ─── MAIN CONTENT ─── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ─── TOP BAR ─── */
+  .topbar {
+    padding: 20px 40px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(15,14,23,0.7);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-left { display: flex; flex-direction: column; }
+  .topbar-greeting {
+    font-family: 'Lora', serif;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .topbar-date {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .streak-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(240,198,116,0.1);
+    border: 1px solid rgba(240,198,116,0.2);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12.5px;
+    color: var(--accent-gold);
+    font-weight: 500;
+  }
+  .btn-new {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--violet);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(124,106,245,0.35);
+  }
+  .btn-new:hover {
+    background: var(--violet-soft);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(124,106,245,0.45);
+  }
+
+  /* ─── CONTENT GRID ─── */
+  .content {
+    padding: 36px 40px;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 28px;
+    flex: 1;
+  }
+
+  /* ─── JOURNAL PANEL ─── */
+  .journal-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .panel-title {
+    font-family: 'Lora', serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-faint);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── ENTRY CARD ─── */
+  .entry-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    animation: fadeUp 0.5s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .entry-header {
+    padding: 24px 28px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .entry-meta { display: flex; flex-direction: column; gap: 4px; }
+  .entry-day {
+    font-family: 'Lora', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+  .entry-weekday {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .mood-selector {
+    display: flex;
+    gap: 6px;
+  }
+  .mood-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .mood-btn:hover { border-color: var(--violet); transform: scale(1.1); }
+  .mood-btn.selected {
+    background: rgba(124,106,245,0.2);
+    border-color: var(--violet);
+    box-shadow: 0 0 12px rgba(124,106,245,0.3);
+  }
+
+  /* ─── WRITING AREA ─── */
+  .writing-area {
+    padding: 20px 28px 0;
+  }
+  .entry-prompt {
+    font-family: 'Lora', serif;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--text-faint);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .entry-textarea {
+    width: 100%;
+    min-height: 160px;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: 'Lora', serif;
+    font-size: 15.5px;
+    line-height: 1.8;
+    color: var(--text);
+    caret-color: var(--violet-soft);
+  }
+  .entry-textarea::placeholder {
+    color: var(--text-faint);
+    font-style: italic;
+  }
+
+  /* ─── DIVIDER ─── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 28px;
+  }
+
+  /* ─── DIMENSIONS ─── */
+  .dimensions {
+    padding: 20px 28px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .dim-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .dim-label {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .dim-dots {
+    display: flex;
+    gap: 4px;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .dot:hover { border-color: var(--violet-soft); }
+  .dot.filled { background: var(--violet); border-color: var(--violet); }
+  .dot.filled-2 { background: var(--accent-sage); border-color: var(--accent-sage); }
+  .dot.filled-3 { background: var(--accent-gold); border-color: var(--accent-gold); }
+  .dot.filled-4 { background: var(--accent-rose); border-color: var(--accent-rose); }
+  .dot.filled-5 { background: var(--accent-sky); border-color: var(--accent-sky); }
+
+  /* ─── TAGS ─── */
+  .tags-row {
+    padding: 0 28px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .tag-label { font-size: 11px; color: var(--text-faint); margin-right: 4px; }
+  .tag {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1.5px solid var(--border);
+    color: var(--text-dim);
+    background: transparent;
+  }
+  .tag:hover { border-color: var(--violet-soft); color: var(--violet-soft); }
+  .tag.active { background: rgba(124,106,245,0.15); border-color: rgba(124,106,245,0.4); color: var(--violet-soft); }
+
+  /* ─── ENTRY FOOTER ─── */
+  .entry-footer {
+    padding: 16px 28px;
+    background: rgba(255,255,255,0.02);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .char-count { font-size: 11px; color: var(--text-faint); }
+  .footer-actions { display: flex; gap: 8px; }
+  .btn-secondary {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+  }
+  .btn-secondary:hover { background: var(--surface); color: var(--text); }
+  .btn-save {
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: var(--violet);
+    color: white;
+    font-weight: 500;
+  }
+  .btn-save:hover { background: var(--violet-soft); transform: translateY(-1px); }
+
+  /* ─── RECENT ENTRIES ─── */
+  .recent-entry {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 22px;
+    cursor: pointer;
+    transition: all 0.2s;
+    animation: fadeUp 0.5s ease both;
+  }
+  .recent-entry:hover {
+    border-color: rgba(124,106,245,0.25);
+    transform: translateX(3px);
+  }
+  .re-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .re-date { font-size: 11px; color: var(--text-faint); }
+  .re-mood { font-size: 16px; }
+  .re-preview {
+    font-family: 'Lora', serif;
+    font-size: 13.5px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    font-style: italic;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .re-tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .re-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text-faint);
+  }
+
+  /* ─── SIDEBAR RIGHT ─── */
+  .side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ─── CALENDAR MINI ─── */
+  .mini-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    animation: fadeUp 0.5s ease both;
+  }
+  .mini-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 16px;
+  }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+  }
+  .cal-day-name {
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding-bottom: 6px;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .cal-day:hover { background: var(--surface); color: var(--text); }
+  .cal-day.has-entry { color: var(--violet-soft); }
+  .cal-day.has-entry::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--violet);
+  }
+  .cal-day.today {
+    background: rgba(124,106,245,0.2);
+    color: var(--violet-soft);
+    font-weight: 600;
+    border: 1px solid rgba(124,106,245,0.3);
+  }
+  .cal-day.empty { cursor: default; }
+
+  /* ─── WEEKLY MOOD CHART ─── */
+  .mood-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 70px;
+    margin-top: 4px;
+  }
+  .mood-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+  .mood-bar {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+  }
+  .mood-bar-label {
+    font-size: 9px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  /* ─── HABITS ─── */
+  .habit-list { display: flex; flex-direction: column; gap: 10px; }
+  .habit-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .habit-left { display: flex; align-items: center; gap: 8px; }
+  .habit-icon { font-size: 14px; width: 20px; text-align: center; }
+  .habit-name { font-size: 12.5px; color: var(--text-dim); }
+  .habit-track { display: flex; gap: 3px; }
+  .habit-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .habit-dot.done { background: var(--accent-sage); border-color: var(--accent-sage); }
+  .habit-dot.today-dot {
+    border-color: var(--violet);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(124,106,245,0.4); }
+    50%       { box-shadow: 0 0 0 4px rgba(124,106,245,0); }
+  }
+
+  /* ─── QUOTE CARD ─── */
+  .quote-card {
+    background: linear-gradient(135deg, rgba(124,106,245,0.15), rgba(79,70,229,0.08));
+    border: 1px solid rgba(124,106,245,0.2);
+    border-radius: 16px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.5s ease both;
+  }
+  .quote-card::before {
+    content: '"';
+    position: absolute;
+    top: -10px;
+    left: 14px;
+    font-family: 'Lora', serif;
+    font-size: 80px;
+    color: rgba(124,106,245,0.15);
+    line-height: 1;
+  }
+  .quote-text {
+    font-family: 'Lora', serif;
+    font-size: 13.5px;
+    font-style: italic;
+    color: var(--mist);
+    line-height: 1.7;
+    position: relative;
+    z-index: 1;
+  }
+  .quote-author {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 10px;
+    letter-spacing: 0.3px;
+  }
+
+  /* ─── NOTIFICATION TOAST ─── */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--card);
+    border: 1px solid rgba(126,203,161,0.3);
+    border-radius: 12px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--accent-sage);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ─── WORD COUNT ANIMATION ─── */
+  .wc-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 28px 0;
+    overflow: hidden;
+  }
+  .wc-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--violet), var(--violet-soft));
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--text-faint); border-radius: 4px; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 1100px) {
+    .content { grid-template-columns: 1fr; }
+    .side-panel { display: grid; grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 768px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .content { padding: 20px; grid-template-columns: 1fr; }
+    .topbar { padding: 16px 20px; }
+    .dimensions { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="glow-top"></div>
+<div class="glow-bottom"></div>
+
+<div class="app">
+
+  <!-- ─── SIDEBAR ─── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">
+        <div class="logo-icon">📖</div>
+        <div>
+          <div class="logo-name">Bitácora</div>
+          <div class="logo-tag">Bienestar personal</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <span class="nav-label">Principal</span>
+      <div class="nav-item active" onclick="setNav(this)">
+        <span class="icon">✍️</span> Registro de hoy
+      </div>
+      <div class="nav-item" onclick="setNav(this)">
+        <span class="icon">📅</span> Historial
+        <span class="nav-badge">12</span>
+      </div>
+      <div class="nav-item" onclick="setNav(this)">
+        <span class="icon">📊</span> Mis patrones
+      </div>
+
+      <span class="nav-label">Bienestar</span>
+      <div class="nav-item" onclick="setNav(this)">
+        <span class="icon">🧘</span> Hábitos
+      </div>
+      <div class="nav-item" onclick="setNav(this)">
+        <span class="icon">😴</span> Descanso
+      </div>
+      <div class="nav-item" onclick="setNav(this)">
+        <span class="icon">🎯</span> Metas del semestre
+      </div>
+
+      <span class="nav-label">Explorar</span>
+      <div class="nav-item" onclick="setNav(this)">
+        <span class="icon">💡</span> Prompts de reflexión
+      </div>
+      <div class="nav-item" onclick="setNav(this)">
+        <span class="icon">⚙️</span> Ajustes
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar">E</div>
+        <div class="user-info">
+          <div class="user-name">Emiliano M.</div>
+          <div class="user-sub">USFQ · Semestre 8</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── MAIN ─── -->
+  <main class="main">
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-greeting">Buenas tardes, Emiliano 🌙</div>
+        <div class="topbar-date" id="current-date">Cargando fecha...</div>
+      </div>
+      <div class="topbar-right">
+        <div class="streak-pill">🔥 12 días seguidos</div>
+        <button class="btn-new" onclick="focusTextarea()">+ Nueva entrada</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- LEFT: JOURNAL -->
+      <div class="journal-panel">
+
+        <div class="panel-title">Entrada de hoy</div>
+
+        <!-- MAIN ENTRY CARD -->
+        <div class="entry-card" style="animation-delay:0.05s">
+          <div class="entry-header">
+            <div class="entry-meta">
+              <div class="entry-day" id="entry-day">Miércoles 14</div>
+              <div class="entry-weekday">Mayo, 2026</div>
+            </div>
+            <div class="mood-selector">
+              <div class="mood-btn" onclick="selectMood(this)" title="Muy mal">😞</div>
+              <div class="mood-btn" onclick="selectMood(this)" title="Mal">😕</div>
+              <div class="mood-btn" onclick="selectMood(this)" title="Regular">😐</div>
+              <div class="mood-btn selected" onclick="selectMood(this)" title="Bien">🙂</div>
+              <div class="mood-btn" onclick="selectMood(this)" title="Muy bien">😄</div>
+            </div>
+          </div>
+
+          <div class="writing-area">
+            <div class="entry-prompt" id="prompt-text">✦ ¿Qué es lo más importante que viviste hoy?</div>
+            <textarea
+              class="entry-textarea"
+              id="main-textarea"
+              placeholder="Empieza a escribir libremente. No hay respuestas incorrectas..."
+              oninput="updateCount(this)"
+            ></textarea>
+          </div>
+
+          <div class="wc-bar"><div class="wc-fill" id="wc-fill"></div></div>
+
+          <div class="divider" style="margin-top:16px"></div>
+
+          <!-- DIMENSIONS -->
+          <div class="dimensions">
+            <div class="dim-item">
+              <div class="dim-label">😴 Descanso</div>
+              <div class="dim-dots" id="dots-descanso" data-color="filled">
+                <div class="dot filled" onclick="fillDots('descanso',1,'filled')"></div>
+                <div class="dot filled" onclick="fillDots('descanso',2,'filled')"></div>
+                <div class="dot filled" onclick="fillDots('descanso',3,'filled')"></div>
+                <div class="dot" onclick="fillDots('descanso',4,'filled')"></div>
+                <div class="dot" onclick="fillDots('descanso',5,'filled')"></div>
+              </div>
+            </div>
+            <div class="dim-item">
+              <div class="dim-label">🥗 Alimentación</div>
+              <div class="dim-dots" id="dots-alimentacion">
+                <div class="dot filled-2" onclick="fillDots('alimentacion',1,'filled-2')"></div>
+                <div class="dot filled-2" onclick="fillDots('alimentacion',2,'filled-2')"></div>
+                <div class="dot filled-2" onclick="fillDots('alimentacion',3,'filled-2')"></div>
+                <div class="dot filled-2" onclick="fillDots('alimentacion',4,'filled-2')"></div>
+                <div class="dot" onclick="fillDots('alimentacion',5,'filled-2')"></div>
+              </div>
+            </div>
+            <div class="dim-item">
+              <div class="dim-label">⚡ Energía</div>
+              <div class="dim-dots" id="dots-energia">
+                <div class="dot filled-3" onclick="fillDots('energia',1,'filled-3')"></div>
+                <div class="dot filled-3" onclick="fillDots('energia',2,'filled-3')"></div>
+                <div class="dot" onclick="fillDots('energia',3,'filled-3')"></div>
+                <div class="dot" onclick="fillDots('energia',4,'filled-3')"></div>
+                <div class="dot" onclick="fillDots('energia',5,'filled-3')"></div>
+              </div>
+            </div>
+            <div class="dim-item">
+              <div class="dim-label">🧠 Concentración</div>
+              <div class="dim-dots" id="dots-concentracion">
+                <div class="dot filled" onclick="fillDots('concentracion',1,'filled')"></div>
+                <div class="dot filled" onclick="fillDots('concentracion',2,'filled')"></div>
+                <div class="dot filled" onclick="fillDots('concentracion',3,'filled')"></div>
+                <div class="dot filled" onclick="fillDots('concentracion',4,'filled')"></div>
+                <div class="dot" onclick="fillDots('concentracion',5,'filled')"></div>
+              </div>
+            </div>
+            <div class="dim-item">
+              <div class="dim-label">💬 Conexión social</div>
+              <div class="dim-dots" id="dots-social">
+                <div class="dot filled-4" onclick="fillDots('social',1,'filled-4')"></div>
+                <div class="dot filled-4" onclick="fillDots('social',2,'filled-4')"></div>
+                <div class="dot" onclick="fillDots('social',3,'filled-4')"></div>
+                <div class="dot" onclick="fillDots('social',4,'filled-4')"></div>
+                <div class="dot" onclick="fillDots('social',5,'filled-4')"></div>
+              </div>
+            </div>
+            <div class="dim-item">
+              <div class="dim-label">📚 Carga académica</div>
+              <div class="dim-dots" id="dots-academica">
+                <div class="dot filled-5" onclick="fillDots('academica',1,'filled-5')"></div>
+                <div class="dot filled-5" onclick="fillDots('academica',2,'filled-5')"></div>
+                <div class="dot filled-5" onclick="fillDots('academica',3,'filled-5')"></div>
+                <div class="dot filled-5" onclick="fillDots('academica',4,'filled-5')"></div>
+                <div class="dot filled-5" onclick="fillDots('academica',5,'filled-5')"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- TAGS -->
+          <div class="tags-row">
+            <span class="tag-label">Etiquetas:</span>
+            <span class="tag active" onclick="toggleTag(this)">parciales</span>
+            <span class="tag" onclick="toggleTag(this)">proyecto grupal</span>
+            <span class="tag active" onclick="toggleTag(this)">desvelo</span>
+            <span class="tag" onclick="toggleTag(this)">ejercicio</span>
+            <span class="tag" onclick="toggleTag(this)">buena comida</span>
+            <span class="tag" onclick="toggleTag(this)">amigos</span>
+            <span class="tag" onclick="toggleTag(this)">+ añadir</span>
+          </div>
+
+          <!-- FOOTER -->
+          <div class="entry-footer">
+            <div class="char-count" id="char-count">0 palabras · hoy, <span id="footer-time">--:--</span></div>
+            <div class="footer-actions">
+              <button class="btn-secondary" onclick="changePrompt()">Otro prompt ↻</button>
+              <button class="btn-save" onclick="saveEntry()">Guardar entrada ✓</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECENT ENTRIES -->
+        <div class="panel-title" style="margin-top:8px">Entradas recientes</div>
+
+        <div class="recent-entry" style="animation-delay:0.1s">
+          <div class="re-header">
+            <span class="re-date">Martes 13 · hace 1 día</span>
+            <span class="re-mood">😐</span>
+          </div>
+          <div class="re-preview">Hoy tuve ese parcial de estadística que tanto me preocupaba. La verdad es que salió mejor de lo que esperaba, aunque todavía no sé la nota...</div>
+          <div class="re-tags">
+            <span class="re-tag">parciales</span>
+            <span class="re-tag">estrés</span>
+            <span class="re-tag">alivio</span>
+          </div>
+        </div>
+
+        <div class="recent-entry" style="animation-delay:0.15s">
+          <div class="re-header">
+            <span class="re-date">Lunes 12 · hace 2 días</span>
+            <span class="re-mood">😕</span>
+          </div>
+          <div class="re-preview">No dormí bien. Me quedé hasta las 2am estudiando y sentí que mi cabeza no procesaba nada después de la medianoche. Hay que cambiar ese hábito...</div>
+          <div class="re-tags">
+            <span class="re-tag">desvelo</span>
+            <span class="re-tag">baja energía</span>
+          </div>
+        </div>
+
+        <div class="recent-entry" style="animation-delay:0.2s">
+          <div class="re-header">
+            <span class="re-date">Domingo 11 · hace 3 días</span>
+            <span class="re-mood">😄</span>
+          </div>
+          <div class="re-preview">Día de recargar pilas. Salí con amigos en la tarde y por primera vez en semanas sentí que no pensaba en la universidad. Fue necesario.</div>
+          <div class="re-tags">
+            <span class="re-tag">amigos</span>
+            <span class="re-tag">descanso</span>
+            <span class="re-tag">bienestar</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="side-panel">
+
+        <!-- MINI CALENDAR -->
+        <div class="mini-card" style="animation-delay:0.08s">
+          <div class="mini-title">Mayo 2026</div>
+          <div class="cal-grid">
+            <div class="cal-day-name">L</div>
+            <div class="cal-day-name">M</div>
+            <div class="cal-day-name">X</div>
+            <div class="cal-day-name">J</div>
+            <div class="cal-day-name">V</div>
+            <div class="cal-day-name">S</div>
+            <div class="cal-day-name">D</div>
+
+            <div class="cal-day empty"></div>
+            <div class="cal-day empty"></div>
+            <div class="cal-day empty"></div>
+            <div class="cal-day has-entry">1</div>
+            <div class="cal-day has-entry">2</div>
+            <div class="cal-day">3</div>
+            <div class="cal-day">4</div>
+
+            <div class="cal-day has-entry">5</div>
+            <div class="cal-day has-entry">6</div>
+            <div class="cal-day has-entry">7</div>
+            <div class="cal-day has-entry">8</div>
+            <div class="cal-day has-entry">9</div>
+            <div class="cal-day">10</div>
+            <div class="cal-day has-entry">11</div>
+
+            <div class="cal-day has-entry">12</div>
+            <div class="cal-day has-entry">13</div>
+            <div class="cal-day today">14</div>
+            <div class="cal-day">15</div>
+            <div class="cal-day">16</div>
+            <div class="cal-day">17</div>
+            <div class="cal-day">18</div>
+
+            <div class="cal-day">19</div>
+            <div class="cal-day">20</div>
+            <div class="cal-day">21</div>
+            <div class="cal-day">22</div>
+            <div class="cal-day">23</div>
+            <div class="cal-day">24</div>
+            <div class="cal-day">25</div>
+
+            <div class="cal-day">26</div>
+            <div class="cal-day">27</div>
+            <div class="cal-day">28</div>
+            <div class="cal-day">29</div>
+            <div class="cal-day">30</div>
+            <div class="cal-day">31</div>
+            <div class="cal-day empty"></div>
+          </div>
+        </div>
+
+        <!-- WEEKLY MOOD -->
+        <div class="mini-card" style="animation-delay:0.12s">
+          <div class="mini-title">Estado de ánimo · esta semana</div>
+          <div class="mood-bars">
+            <div class="mood-bar-wrap">
+              <div class="mood-bar" style="height:40%;background:rgba(124,106,245,0.5);border-radius:4px 4px 0 0"></div>
+              <div class="mood-bar-label">L</div>
+            </div>
+            <div class="mood-bar-wrap">
+              <div class="mood-bar" style="height:30%;background:rgba(124,106,245,0.4);border-radius:4px 4px 0 0"></div>
+              <div class="mood-bar-label">M</div>
+            </div>
+            <div class="mood-bar-wrap">
+              <div class="mood-bar" style="height:55%;background:rgba(124,106,245,0.6);border-radius:4px 4px 0 0"></div>
+              <div class="mood-bar-label">X</div>
+            </div>
+            <div class="mood-bar-wrap">
+              <div class="mood-bar" style="height:65%;background:var(--violet);border-radius:4px 4px 0 0;box-shadow:0 4px 12px rgba(124,106,245,0.4)"></div>
+              <div class="mood-bar-label" style="color:var(--violet-soft)">J</div>
+            </div>
+            <div class="mood-bar-wrap">
+              <div class="mood-bar" style="height:20%;background:rgba(124,106,245,0.2);border-radius:4px 4px 0 0"></div>
+              <div class="mood-bar-label">V</div>
+            </div>
+            <div class="mood-bar-wrap">
+              <div class="mood-bar" style="height:10%;background:rgba(124,106,245,0.15);border-radius:4px 4px 0 0;border:1px dashed rgba(124,106,245,0.3)"></div>
+              <div class="mood-bar-label">S</div>
+            </div>
+            <div class="mood-bar-wrap">
+              <div class="mood-bar" style="height:10%;background:rgba(124,106,245,0.15);border-radius:4px 4px 0 0;border:1px dashed rgba(124,106,245,0.3)"></div>
+              <div class="mood-bar-label">D</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HABITS THIS WEEK -->
+        <div class="mini-card" style="animation-delay:0.16s">
+          <div class="mini-title">Hábitos · esta semana</div>
+          <div class="habit-list">
+            <div class="habit-item">
+              <div class="habit-left">
+                <span class="habit-icon">💧</span>
+                <span class="habit-name">Hidratación</span>
+              </div>
+              <div class="habit-track">
+                <div class="habit-dot done"></div>
+                <div class="habit-dot done"></div>
+                <div class="habit-dot done"></div>
+                <div class="habit-dot done"></div>
+                <div class="habit-dot today-dot"></div>
+                <div class="habit-dot"></div>
+                <div class="habit-dot"></div>
+              </div>
+            </div>
+            <div class="habit-item">
+              <div class="habit-left">
+                <span class="habit-icon">🏃</span>
+                <span class="habit-name">Ejercicio</span>
+              </div>
+              <div class="habit-track">
+                <div class="habit-dot done"></div>
+                <div class="habit-dot"></div>
+                <div class="habit-dot done"></div>
+                <div class="habit-dot"></div>
+                <div class="habit-dot today-dot"></div>
+                <div class="habit-dot"></div>
+                <div class="habit-dot"></div>
+              </div>
+            </div>
+            <div class="habit-item">
+              <div class="habit-left">
+                <span class="habit-icon">📖</span>
+                <span class="habit-name">Lectura</span>
+              </div>
+              <div class="habit-track">
+                <div class="habit-dot done"></div>
+                <div class="habit-dot done"></div>
+                <div class="habit-dot done"></div>
+                <div class="habit-dot done"></div>
+                <div class="habit-dot today-dot"></div>
+                <div class="habit-dot"></div>
+                <div class="habit-dot"></div>
+              </div>
+            </div>
+            <div class="habit-item">
+              <div class="habit-left">
+                <span class="habit-icon">🌙</span>
+                <span class="habit-name">Dormir a tiempo</span>
+              </div>
+              <div class="habit-track">
+                <div class="habit-dot"></div>
+                <div class="habit-dot"></div>
+                <div class="habit-dot done"></div>
+                <div class="habit-dot done"></div>
+                <div class="habit-dot today-dot"></div>
+                <div class="habit-dot"></div>
+                <div class="habit-dot"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- QUOTE -->
+        <div class="quote-card" style="animation-delay:0.2s">
+          <div class="quote-text">Registrar lo que vives no es un ejercicio de productividad. Es un acto de presencia.</div>
+          <div class="quote-author">— Bitácora</div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ Entrada guardada con éxito</div>
+
+<script>
+  // ── DATE ──
+  const now = new Date();
+  const days = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  document.getElementById('current-date').textContent =
+    `${days[now.getDay()]}, ${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`;
+  document.getElementById('entry-day').textContent =
+    `${days[now.getDay()]} ${now.getDate()}`;
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function updateTime(){
+    const t = new Date();
+    document.getElementById('footer-time').textContent = `${pad(t.getHours())}:${pad(t.getMinutes())}`;
+  }
+  updateTime();
+  setInterval(updateTime, 30000);
+
+  // ── NAV ──
+  function setNav(el){
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // ── MOOD ──
+  function selectMood(el){
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  // ── TEXTAREA ──
+  const prompts = [
+    '✦ ¿Qué es lo más importante que viviste hoy?',
+    '✦ ¿Cómo se siente tu cuerpo en este momento?',
+    '✦ ¿Qué fue lo más difícil del día, y cómo lo manejaste?',
+    '✦ ¿Hubo algo que te sorprendió hoy?',
+    '✦ ¿Qué necesitas soltar antes de dormir esta noche?',
+    '✦ ¿Qué pequeña cosa te hizo sentir bien hoy?',
+    '✦ Si tu día de hoy fuera un color, ¿cuál sería y por qué?',
+  ];
+  let promptIdx = 0;
+
+  function changePrompt(){
+    promptIdx = (promptIdx + 1) % prompts.length;
+    const el = document.getElementById('prompt-text');
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.textContent = prompts[promptIdx];
+      el.style.transition = 'opacity 0.3s';
+      el.style.opacity = '1';
+    }, 200);
+  }
+
+  function focusTextarea(){
+    document.getElementById('main-textarea').focus();
+    document.getElementById('main-textarea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function updateCount(el){
+    const words = el.value.trim().split(/\s+/).filter(w => w.length > 0).length;
+    document.getElementById('char-count').innerHTML =
+      `${words} palabras · hoy, <span id="footer-time">${pad(new Date().getHours())}:${pad(new Date().getMinutes())}</span>`;
+    const pct = Math.min((words / 80) * 100, 100);
+    document.getElementById('wc-fill').style.width = pct + '%';
+  }
+
+  // ── DOTS ──
+  function fillDots(name, level, cls){
+    const container = document.getElementById('dots-' + name);
+    const dots = container.querySelectorAll('.dot');
+    dots.forEach((d, i) => {
+      d.className = 'dot';
+      if(i < level) d.classList.add(cls);
+    });
+  }
+
+  // ── TAGS ──
+  function toggleTag(el){
+    el.classList.toggle('active');
+  }
+
+  // ── SAVE ──
+  function saveEntry(){
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2800);
+  }
+</script>
+</body>
+</html>
